@@ -1,4 +1,4 @@
-name: Playwright Tests + Allure Report + Email
+name: Playwright Tests with Allure and Email
 
 on:
   push:
@@ -13,35 +13,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: "18"
 
       - name: Install dependencies
         run: npm install
 
+      # Install Playwright Browsers
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      # Run Playwright tests → produces allure-results
       - name: Run Playwright tests
         run: npx playwright test --reporter=line
 
-      - name: Generate Allure Results
-        run: |
-          npx allure generate ./allure-results --clean -o ./allure-report
-        continue-on-error: true
+      # Generate Allure HTML Report
+      - name: Generate Allure report
+        run: npx allure generate allure-results --clean -o allure-report
 
-      - name: Zip Allure Report
-        run: |
-          zip -r allure-report.zip allure-report
+      # Zip the report for email attachment
+      - name: Zip Allure report
+        run: zip -r allure-report.zip allure-report
 
-      - name: Send Email with Allure Report
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: ${{ secrets.EMAIL_USER }}
-          password: ${{ secrets.EMAIL_PASS }}
-          subject: "Playwright Test Execution Report"
-          body: "Hi Akash, please find attached the latest Playwright Allure Test Report."
-          to: ${{ secrets.EMAIL_TO }}
-          from: ${{ secrets.EMAIL_USER }}
-          attachments: allure-report.zip
+      # Send email with Nodemailer
+      - name: Send Email With Report
+        run: node send-email.js
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
